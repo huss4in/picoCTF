@@ -6,6 +6,10 @@ import socket
 from termcolor import colored
 
 
+def main():
+    Netcat('mercury.picoctf.net', 7449).flag()
+
+
 class Netcat:
 
     def __init__(self, host: str, port: int) -> None:
@@ -58,10 +62,6 @@ class Netcat:
         flag = ''.join(chr(int(b.decode())) for b in data.split(str.encode('\n'))[:-2])
 
         return flag
-
-
-def main():
-    Netcat('mercury.picoctf.net', 7449).flag()
 
 
 if __name__ == '__main__':
