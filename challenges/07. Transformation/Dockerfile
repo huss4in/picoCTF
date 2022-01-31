@@ -4,6 +4,7 @@ FROM alpine AS build
 # Get files
 RUN wget https://mercury.picoctf.net/static/77a2b202236aa741e988581e78d277a6/enc
 
+
 # Base image
 FROM python:alpine
 
@@ -11,12 +12,15 @@ FROM python:alpine
 WORKDIR /picoctf
 
 # Copy files
-COPY --from=build enc ./
-COPY solution.py ./
+COPY --from=build enc .
 
 # # Install requirements
-# RUN pip install --no-cache-dir 
+RUN pip install --no-cache-dir termcolor
+
+# Flag style
+ARG FLAG_STYLE="%s\n"
+ENV FLAG_STYLE=$FLAG_STYLE
 
 # Run solution
-COPY solution.sh ./
-CMD [ "/picoctf/solution.sh" ]
+COPY solution.py .
+CMD [ "/picoctf/solution.py" ]

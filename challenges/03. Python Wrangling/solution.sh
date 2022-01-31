@@ -1,5 +1,8 @@
 #!/bin/sh
 
-set -x
+printf $FLAG_STYLE "$(
+    set -x
 
-cat pw.txt | python ende.py -d ./flag.txt.en
+    # Solution:
+    cat pw.txt | python ende.py -d ./flag.txt.en | grep -oE "picoCTF\{\w+\}"
+)"

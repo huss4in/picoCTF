@@ -1,12 +1,16 @@
 # Base image
-FROM python:3.9-alpine
+FROM python:alpine
 
 # Working Directory
 WORKDIR /picoctf
 
-# Copy files
-COPY solution.py ./
+# # Install requirements
+RUN pip install --no-cache-dir termcolor
+
+# Flag style
+ARG FLAG_STYLE="%s\n"
+ENV FLAG_STYLE=$FLAG_STYLE
 
 # Run solution
-COPY solution.sh ./
-CMD [ "/picoctf/solution.sh" ]
+COPY solution.py .
+CMD [ "/picoctf/solution.py" ]

@@ -20,6 +20,10 @@ COPY --from=build ende.py pw.txt flag.txt.en ./
 RUN apk add --no-cache gcc musl-dev libffi-dev
 RUN pip install --no-cache-dir cryptography
 
+# Flag style
+ARG FLAG_STYLE="%s\n"
+ENV FLAG_STYLE=$FLAG_STYLE
+
 # Run solution
-COPY solution.sh ./
+COPY solution.sh .
 CMD [ "/picoctf/solution.sh" ]

@@ -1,49 +1,67 @@
 #!/usr/bin/env python
 
-import sys
+import os
 import socket
+
+from termcolor import colored
 
 
 class Netcat:
 
     def __init__(self, host: str, port: int) -> None:
-        """Initialize the class."""
-        self.host = str(host)
-        self.port = int(port)
+        """Initialize."""
+        self.host = host
+        self.port = port
 
-    def get(self):
-        """Connect to host and retrieve the bytes."""
+    def flag(self) -> str:
+        """Print the flag."""
 
-        print(f'Connecting to {self.host}:{self.port}...')
+        data: bytes = self.nc()
+
+        flag: str = self.decode(data)
+
+        print(os.environ.get('FLAG_STYLE')
+              .replace('\\n', '\n')
+              .replace('\\e', '\033')
+              .replace('%s', flag))
+
+    def nc(self) -> bytes:
+        """Connect to host and receive bytes."""
+
+        print("\n{}{}...".format(
+            colored("Connecting to ", 'blue', attrs=['bold']),
+            colored(f"{self.host}:{self.port}", 'yellow', attrs=['bold']),
+        ))
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((self.host, int(self.port)))
             print('{}:{}'.format(*s.getpeername()))
             s.shutdown(socket.SHUT_WR)
 
-            print('\nReceiving bytes...')
-            self.data = s.recv(1024)
+            print("\n{}...".format(
+                colored("Receiving bytes", 'blue', attrs=['bold']),
+            ))
 
-            print(self.data)
+            data = s.recv(1024)
 
-        return self
+            print(data)
 
-    def decode(self) -> str:
+            return data
+
+    def decode(self, data) -> str:
         """Decode the bytes."""
 
-        print("\nDecoding bytes...")
+        print("\n{}...".format(
+            colored("Decoding bytes", 'blue', attrs=['bold']),
+        ))
 
-        self.flag = ''.join(chr(int(b.decode())) for b in self.data.split(str.encode('\n'))[:-2])
+        flag = ''.join(chr(int(b.decode())) for b in data.split(str.encode('\n'))[:-2])
 
-        return self
-
-    def print(self) -> None:
-        """Print the flag."""
-        print(f'{self.flag}')
+        return flag
 
 
 def main():
-    Netcat(sys.argv[1], sys.argv[2]).get().decode().print()
+    Netcat('mercury.picoctf.net', 7449).flag()
 
 
 if __name__ == '__main__':

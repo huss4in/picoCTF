@@ -1,11 +1,5 @@
 #!/bin/bash
 
-set -e
-
-#-----------------------------------------------------------#
-# Go to the script's directory
-pushd "$(dirname "$(readlink -f "$BASH_SOURCE")")" >/dev/null
-
 declare -A colors
 
 colors=(
@@ -37,6 +31,12 @@ colors=(
     ['WHITE']="\e[97m"
 )
 
+FLAG_STYLE="\e[1;4;5;31m%s\e[0m\n"
+
+#-----------------------------------------------------------#
+# Go to the script's directory
+pushd "$(dirname "$(readlink -f "$BASH_SOURCE")")" >/dev/null
+
 color() {
     printf "${colors[$1]}${2:-$(</dev/stdin)}${colors[END]}"
 }
@@ -48,7 +48,7 @@ if [ -z "$1" ]; then
 fi
 
 # If there are multiple arguments, use quiet build
-if [ "$#" -gt 3 ]; then
+if [ "$#" -gt 1 ]; then
     QUIET='--quiet'
 fi
 
@@ -57,21 +57,12 @@ for path in "$@"; do
     file=$(echo "$path"* | sed -e "s/^\w*\///")
     tag="${file%%.*}"
 
-    printf "\n%s %s <-- %s...\n" "$(color YELLOW "Building" | color BOLD)" "$(color LIGHT_BLUE "picoctf:$tag" | color BLINK)" "$(color MAGENTA "$file")"
+    printf "\n%s %s <- %s...\n" "$(color YELLOW "•Building" | color BOLD)" "$(color LIGHT_BLUE "picoctf:$tag")" "$(color MAGENTA "$file")"
+    DOCKER_SCAN_SUGGEST=false docker build $QUIET --tag "picoctf:$tag" --build-arg FLAG_STYLE="$FLAG_STYLE" "$path"*
 
-    DOCKER_SCAN_SUGGEST=false docker build $QUIET --tag "picoctf:$tag" "$path"*
-done
-
-set +e
-
-for path in "$@"; do
-
-    file=$(echo "$path"* | sed -e "s/^\w*\///")
-    tag="${file%%.*}"
-
-    printf "\n%s %s...\n" "$(color GREEN "Running" | color BOLD)" "$(color BLUE "picoctf:$tag")"
-
+    printf "\n%s %s...\n" "$(color GREEN ">>Running" | color BOLD)" "$(color BLUE "picoctf:$tag")"
     docker run --rm -ti --name "picoctf-$tag" "picoctf:$tag"
+    echo
 done
 
 # Return to the previous directory

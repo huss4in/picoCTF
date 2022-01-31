@@ -1,5 +1,8 @@
 #!/bin/sh
 
-set -x
+printf $FLAG_STYLE "$(
+    set -x
 
-echo $(grep -aoP "(?<=<cc:license rdf:resource=')\w+(?='\/>)" cat.jpg | base64 -d)
+    # Solution:
+    grep -aoP "(?<=<cc:license rdf:resource=')\w+(?='\/>)" cat.jpg | base64 -d
+)"

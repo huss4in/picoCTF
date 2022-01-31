@@ -15,6 +15,10 @@ WORKDIR /picoctf
 # Copy files
 COPY --from=build cat.jpg ./
 
+# Flag style
+ARG FLAG_STYLE="%s\n"
+ENV FLAG_STYLE=$FLAG_STYLE
+
 # Run solution
 COPY solution.sh ./
 CMD [ "/picoctf/solution.sh" ]

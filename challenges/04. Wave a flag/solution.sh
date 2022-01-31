@@ -1,5 +1,8 @@
 #!/bin/sh
 
-set -x
+printf $FLAG_STYLE "$(
+    set -x
 
-./warm -h
+    # Solution:
+    ./warm -h | grep -oE 'picoCTF\{\w+\}'
+)"

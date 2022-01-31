@@ -1,5 +1,8 @@
 #!/bin/sh
 
-set -x
+printf $FLAG_STYLE "$(
+    set -x
 
-cat flag
+    # Solution:
+    cat flag
+)"
