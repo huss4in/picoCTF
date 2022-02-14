@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 declare -A colors
 
 colors=(
@@ -47,20 +49,20 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-# If there are multiple arguments, use quiet build
-if [ "$#" -gt 1 ]; then
-    QUIET='--quiet'
-fi
+# # If there are multiple arguments, use quiet build
+# if [ "$#" -gt 1 ]; then
+#     QUIET='--quiet'
+# fi
 
 for path in "$@"; do
 
     file=$(echo "$path"* | sed -e "s/^\w*\///")
     tag="${file%%.*}"
 
-    printf "\n%s %s <- %s...\n" "$(color YELLOW "•Building" | color BOLD)" "$(color LIGHT_BLUE "picoctf:$tag")" "$(color MAGENTA "$file")"
-    DOCKER_SCAN_SUGGEST=false docker build $QUIET --tag "picoctf:$tag" --build-arg FLAG_STYLE="$FLAG_STYLE" "$path"*
+    printf "\n%s %s <- %s..." "$(color YELLOW "🔨 Building")" "$(color LIGHT_BLUE "picoctf:$tag")" "$(color MAGENTA "$file")"
+    DOCKER_SCAN_SUGGEST=false docker build --quiet --tag "picoctf:$tag" --build-arg FLAG_STYLE="$FLAG_STYLE" "$path"* >/dev/null
 
-    printf "\n%s %s...\n" "$(color GREEN ">>Running" | color BOLD)" "$(color BLUE "picoctf:$tag")"
+    printf "\r%s %s\n" "$(color GREEN "🚀  Running")" "$(color LIGHT_BLUE "picoctf:$tag")"
     docker run --rm -ti --name "picoctf-$tag" "picoctf:$tag"
     echo
 done

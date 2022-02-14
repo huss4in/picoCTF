@@ -25,14 +25,14 @@ class Transformation:
         print(os.environ.get('FLAG_STYLE')
               .replace('\\n', '\n')
               .replace('\\e', '\033')
-              .replace('%s', flag))
+              .replace('%s', flag), end='')
 
     def read(self) -> str:
         """Read the encrypted flag."""
 
-        print("\n{}{}...".format(
-            colored("Reading enctyped flag ", 'blue', attrs=['bold']),
-            colored("'enc'", 'yellow', attrs=['bold']),
+        print("\n{}, {}".format(
+            colored("Read enctyped flag", 'blue', attrs=['bold']),
+            colored("'enc'", 'yellow'),
         ))
 
         try:
@@ -53,9 +53,9 @@ class Transformation:
     def decrypt(self, enc):
         """Decrypt the encrypted flag."""
 
-        print("\n{}{}".format(
-            colored("Decrypting the flag using ", 'blue', attrs=['bold']),
-            colored("utf-16-be", 'yellow', attrs=['bold']),
+        print("\n{}, {}".format(
+            colored("Decode", 'blue', attrs=['bold']),
+            colored("utf-16-be", 'yellow'),
         ))
 
         return ''.join(chr(c) for c in enc.encode('utf-16-be'))

