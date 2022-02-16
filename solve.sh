@@ -62,7 +62,7 @@ for path in "$@"; do
     printf "\n%s %s <- %s..." "$(color YELLOW "🔨 Building")" "$(color LIGHT_BLUE "picoctf:$tag")" "$(color MAGENTA "$file")"
     DOCKER_SCAN_SUGGEST=false docker build --quiet --tag "picoctf:$tag" --build-arg FLAG_STYLE="$FLAG_STYLE" "$path"* >/dev/null
 
-    printf "\r%s %s\n" "$(color GREEN "🚀  Running")" "$(color LIGHT_BLUE "picoctf:$tag")"
+    printf "\r%s %s\n" "$(color GREEN " 🚀 Running")" "$(color LIGHT_BLUE "picoctf:$tag")"
     docker run --rm -ti --name "picoctf-$tag" "picoctf:$tag"
     echo
 done
