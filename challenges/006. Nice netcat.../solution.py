@@ -17,7 +17,7 @@ class Netcat:
         self.host = host
         self.port = port
 
-    def flag(self) -> str:
+    def flag(self) -> None:
         """Print the flag."""
 
         data: bytes = self.nc()
