@@ -2,9 +2,7 @@
 
 set -e
 
-declare -A colors
-
-colors=(
+declare -A colors=(
     ['END']="\e[0m"
     ['BOLD']="\e[1m"
     ['DEM']="\e[2m"
@@ -33,7 +31,7 @@ colors=(
     ['WHITE']="\e[97m"
 )
 
-FLAG_STYLE="\e[1;4;5;31m%s\e[0m\n"
+FLAG_STYLE="\n\e[1;4;5;31m%s\e[0m\n"
 
 #-----------------------------------------------------------#
 # Go to the script's directory
@@ -49,18 +47,19 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-# # If there are multiple arguments, use quiet build
-# if [ "$#" -gt 1 ]; then
-#     QUIET='--quiet'
-# fi
+# If there are multiple arguments, use quiet build
+if [ "$#" -gt 1 ]; then
+    QUIET='--quiet'
+fi
 
 for path in "$@"; do
 
-    file=$(echo "$path"* | sed -e "s/^\w*\///")
-    tag="${file%%.*}"
+    tag=$(printf "%03d" $path)
+    file=$(echo "challenges/$tag"*)
+    name=$(echo $file | sed -e "s/^\w*\///")
 
-    printf "\n%s %s <- %s..." "$(color YELLOW "🔨 Building")" "$(color LIGHT_BLUE "picoctf:$tag")" "$(color MAGENTA "$file")"
-    DOCKER_SCAN_SUGGEST=false docker build --quiet --tag "picoctf:$tag" --build-arg FLAG_STYLE="$FLAG_STYLE" "$path"* >/dev/null
+    printf "\n%s %s <- %s..." "$(color YELLOW "⚒️ Building")" "$(color LIGHT_BLUE "picoctf:$tag")" "$(color MAGENTA "$name")"
+    DOCKER_SCAN_SUGGEST=false docker build $QUIET --tag "picoctf:$tag" --build-arg FLAG_STYLE="$FLAG_STYLE" "$file" >/dev/null
 
     printf "\r%s %s\n" "$(color GREEN " 🚀 Running")" "$(color LIGHT_BLUE "picoctf:$tag")"
     docker run --rm -ti --name "picoctf-$tag" "picoctf:$tag"
