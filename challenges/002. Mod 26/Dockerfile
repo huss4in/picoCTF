@@ -1,16 +1,18 @@
 # Base image
 FROM alpine
 
+
 # Working Directory
 WORKDIR /picoctf
 
-# Get files
-RUN echo "cvpbPGS{arkg_gvzr_V'yy_gel_2_ebhaqf_bs_ebg13_jdJBFOXJ}" > flag
+# Download
+ENV flag "cvpbPGS{arkg_gvzr_V'yy_gel_2_ebhaqf_bs_ebg13_jdJBFOXJ}"
 
 # Flag style
-ARG FLAG_STYLE="%s\n"
-ENV FLAG_STYLE=$FLAG_STYLE
+ARG FLAG_STYLE "%s\n"
+ENV FLAG_STYLE $FLAG_STYLE
 
-# Run solution
-COPY solution.sh ./
-CMD [ "/picoctf/solution.sh" ]
+# Solution
+CMD printf $FLAG_STYLE $(set -x; \
+  echo $flag | tr 'a-zA-Z' 'n-za-mN-ZA-M'; \
+)
