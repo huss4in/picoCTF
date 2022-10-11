@@ -1,16 +1,9 @@
-# Base image
+# 132
+
 FROM alpine
 
-# Working Directory
 WORKDIR /picoctf
 
-# Install dependencies
 RUN apk add --no-cache curl
 
-# Flag style
-ARG FLAG_STYLE="%s\n"
-ENV FLAG_STYLE=$FLAG_STYLE
-
-# Run solution
-COPY solution.sh .
-CMD [ "/picoctf/solution.sh" ]
+CMD set -x; curl -sI http://mercury.picoctf.net:45028 | grep flag
