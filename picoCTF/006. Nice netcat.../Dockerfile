@@ -1,16 +1,7 @@
-# Base image
-FROM python:alpine
+# 156
 
-# Working Directory
+FROM alpine
+
 WORKDIR /picoctf
 
-# # Install requirements
-RUN pip install --no-cache-dir termcolor
-
-# Flag style
-ARG FLAG_STYLE="%s\n"
-ENV FLAG_STYLE=$FLAG_STYLE
-
-# Run solution
-COPY solution.py .
-CMD [ "/picoctf/solution.py" ]
+CMD set -x; echo '\n' | nc mercury.picoctf.net 7449 | xargs -I {} sh -c 'printf "%b" $(printf "\%03o" {})'
