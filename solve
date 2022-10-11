@@ -77,8 +77,8 @@ for path in "$@"; do
     printf "\n%s %s <- %s %s... 🕒\r" "$(color " Building 📦" YELLOW)" "$(color "picoctf:$tag" LIGHT_BLUE)" "$(color "$name" MAGENTA)" "$(color "$LINK" LIGHT_CYAN)"
     DOCKER_SCAN_SUGGEST=false docker build $QUIET --tag "picoctf:$tag" --build-arg "FLAG_STYLE=$FLAG_STYLE" --build-arg "FLAG_REGEX=$FLAG_REGEX" "$file" >/dev/null
 
-    printf "\r%s %s <- %s %-$((14 + $(echo $LINK | wc -c)))s\n\r" "$(color "  Running 🚀" GREEN)" "$(color "picoctf:$tag" LIGHT_BLUE)" "$(color "$name" MAGENTA)" "$(color "$LINK" LIGHT_CYAN)" 
-    FLAG=$(docker run --rm -ti --name "picoCTF-$tag" "picoctf:$tag" 2>&1 | tee >(sed 'a\' | cat - >&5) | tac | grep -m1 -aoP "$FLAG_REGEX" || echo)
+    printf "\r%s %s <- %s %-$((14 + $(echo $LINK | wc -c)))s\n\r" "$(color "  Running 🚀" GREEN)" "$(color "picoctf:$tag" LIGHT_BLUE)" "$(color "$name" MAGENTA)" "$(color "$LINK" LIGHT_CYAN)"
+    FLAG=$(docker run --rm -ti --name "picoCTF-$tag" "picoctf:$tag" 2>&1 | tee >(cat - >&5) | tac | grep -m1 -aoP "$FLAG_REGEX" || echo)
 
     if ! [ $(echo "$FLAG" | grep 'picoCTF') ]; then
         FLAG="Not found"
