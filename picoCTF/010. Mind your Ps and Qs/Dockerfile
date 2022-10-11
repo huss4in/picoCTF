@@ -1,13 +1,13 @@
-# Base image
-FROM alpine
+# 162
 
-# Working Directory
+FROM python:3.8-slim-buster
+
+RUN apt update && apt install -y git wget gcc libgmp3-dev libmpc-dev
+
 WORKDIR /picoctf
 
-# Flag style
-ARG FLAG_STYLE="%s\n"
-ENV FLAG_STYLE=$FLAG_STYLE
+RUN wget https://mercury.picoctf.net/static/b9ddda080c56fb421bf30409bec3460d/values
 
-# Run solution
-COPY solution.sh .
-CMD [ "/picoctf/solution.sh" ]
+RUN git clone https://github.com/Ganapati/RsaCtfTool.git && pip install -r RsaCtfTool/requirements.txt
+
+CMD set -x; get(){ grep -m1 -oP "(?<=$1: )\d+" values;}; python RsaCtfTool/RsaCtfTool.py -n $(get n) -e $(get e) --uncipher $(get c) | grep utf-8
