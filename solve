@@ -31,19 +31,30 @@ declare -A colors=(
     ['WHITE']="\e[97m"
 )
 
-FLAG_STYLE="\n\e[1;4;5;31m%s\e[0m\n"
+FLAG_REGEX="picoCTF{.+}"
+FLAG_STYLE="\n• \e[1;4;5;31m%s\e[0m\n"
 
 #-----------------------------------------------------------#
 # Go to the script's directory
 pushd "$(dirname "$(readlink -f "$BASH_SOURCE")")" >/dev/null
 
 color() {
-    printf "${colors[$1]}${2:-$(</dev/stdin)}${colors[END]}"
+    # loop over all arguments except the first one
+    for color in ${@:2}; do
+        printf "${colors[$color]}"
+    done
+    printf "$1${colors[END]}"
 }
 
 # if $1 is empty
 if [ -z "$1" ]; then
-    echo "Usage: $0 <PATH>"
+    echo "Usage: $0 <NUMBER>"
+    exit 1
+fi
+
+# Check if Docker is running
+if ! docker info >/dev/null 2>&1; then
+    echo $(color "Docker" BLUE BOLD BLINK) $(color "is not running!" RED BLINK)
     exit 1
 fi
 
@@ -52,19 +63,31 @@ if [ "$#" -gt 1 ]; then
     QUIET='--quiet'
 fi
 
+# Duplicate stdout
+exec 5>&1
+
 for path in "$@"; do
 
     tag=$(printf "%03d" $path)
-    file=$(echo "challenges/$tag"*)
+    file=$(echo "picoCTF/$tag"*)
     name=$(echo $file | sed -e "s/^\w*\///")
 
-    printf "\n%s %s <- %s..." "$(color YELLOW "⚒️ Building")" "$(color LIGHT_BLUE "picoctf:$tag")" "$(color MAGENTA "$name")"
-    DOCKER_SCAN_SUGGEST=false docker build $QUIET --tag "picoctf:$tag" --build-arg FLAG_STYLE="$FLAG_STYLE" "$file" >/dev/null
+    LINK="https://play.picoctf.org/practice/challenge/$(HEAD=$(head -n 1 "$file/Dockerfile"); echo $HEAD | grep -i FROM > /dev/null || echo $HEAD | grep -oP \\d+ || true)"
 
-    printf "\r%s %s\n" "$(color GREEN " 🚀 Running")" "$(color LIGHT_BLUE "picoctf:$tag")"
-    docker run --rm -ti --name "picoctf-$tag" "picoctf:$tag"
-    echo
+    printf "\n%s %s <- %s %s... 🕒\r" "$(color " Building 📦" YELLOW)" "$(color "picoctf:$tag" LIGHT_BLUE)" "$(color "$name" MAGENTA)" "$(color "$LINK" LIGHT_CYAN)"
+    DOCKER_SCAN_SUGGEST=false docker build $QUIET --tag "picoctf:$tag" --build-arg "FLAG_STYLE=$FLAG_STYLE" --build-arg "FLAG_REGEX=$FLAG_REGEX" "$file" >/dev/null
+
+    printf "\r%s %s <- %s %-$((14 + $(echo $LINK | wc -c)))s\n\r" "$(color "  Running 🚀" GREEN)" "$(color "picoctf:$tag" LIGHT_BLUE)" "$(color "$name" MAGENTA)" "$(color "$LINK" LIGHT_CYAN)" 
+    FLAG=$(docker run --rm -ti --name "picoCTF-$tag" "picoctf:$tag" 2>&1 | tee >(sed 'a\' | cat - >&5) | tac | grep -m1 -aoP "$FLAG_REGEX" || echo)
+
+    if ! [ $(echo "$FLAG" | grep 'picoCTF') ]; then
+        FLAG="Not found"
+    fi
+
+    printf "$FLAG_STYLE" "$FLAG"
 done
+
+echo
 
 # Return to the previous directory
 popd >/dev/null
