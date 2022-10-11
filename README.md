@@ -3,11 +3,11 @@
 ### Solve one challenge
 
 ```zh
-./solve.sh challenges/001
+./solve 1
 ```
 
 ### Solve multiple challenges
 
 ```zh
-./solve.sh challenges/{001..009}
+./solve {1..10}
 ```
