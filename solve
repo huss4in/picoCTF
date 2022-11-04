@@ -3,35 +3,35 @@
 set -e
 
 declare -A colors=(
-    ['END']="\e[0m"
-    ['BOLD']="\e[1m"
-    ['DEM']="\e[2m"
-    ['ITALIC']="\e[3m"
-    ['UNDERLINED']="\e[4m"
-    ['BLINK']="\e[5m"
-    ['INVERTED']="\e[7m"
-    ['HIDDEN']="\e[8m"
-    ['CROSSED']="\e[9m"
-    ['BLACK']="\e[30m"
-    ['RED']="\e[31m"
-    ['GREEN']="\e[32m"
-    ['YELLOW']="\e[33m"
-    ['BLUE']="\e[34m"
-    ['MAGENTA']="\e[35m"
-    ['CYAN']="\e[36m"
-    ['GRAY']="\e[37m"
-    ['DEF']="\e[39m"
-    ['DARK_GREY']="\e[90m"
-    ['LIGHT_RED']="\e[91m"
-    ['LIGHT_GRAY']="\e[92m"
-    ['LIGHT_YELLOW']="\e[93m"
-    ['LIGHT_BLUE']="\e[94m"
-    ['LIGHT_MAGENTA']="\e[95m"
-    ['LIGHT_CYAN']="\e[96m"
-    ['WHITE']="\e[97m"
+	['END']="\e[0m"
+	['BOLD']="\e[1m"
+	['DEM']="\e[2m"
+	['ITALIC']="\e[3m"
+	['UNDERLINED']="\e[4m"
+	['BLINK']="\e[5m"
+	['INVERTED']="\e[7m"
+	['HIDDEN']="\e[8m"
+	['CROSSED']="\e[9m"
+	['BLACK']="\e[30m"
+	['RED']="\e[31m"
+	['GREEN']="\e[32m"
+	['YELLOW']="\e[33m"
+	['BLUE']="\e[34m"
+	['MAGENTA']="\e[35m"
+	['CYAN']="\e[36m"
+	['GRAY']="\e[37m"
+	['DEF']="\e[39m"
+	['DARK_GREY']="\e[90m"
+	['LIGHT_RED']="\e[91m"
+	['LIGHT_GRAY']="\e[92m"
+	['LIGHT_YELLOW']="\e[93m"
+	['LIGHT_BLUE']="\e[94m"
+	['LIGHT_MAGENTA']="\e[95m"
+	['LIGHT_CYAN']="\e[96m"
+	['WHITE']="\e[97m"
 )
 
-FLAG_REGEX="picoCTF{.+}"
+FLAG_REGEX="picoCTF{[^\s\}]*?}"
 FLAG_STYLE="\n• \e[1;4;5;31m%s\e[0m\n"
 
 #-----------------------------------------------------------#
@@ -39,28 +39,28 @@ FLAG_STYLE="\n• \e[1;4;5;31m%s\e[0m\n"
 pushd "$(dirname "$(readlink -f "$BASH_SOURCE")")" >/dev/null
 
 color() {
-    # loop over all arguments except the first one
-    for color in ${@:2}; do
-        printf "${colors[$color]}"
-    done
-    printf "$1${colors[END]}"
+	# loop over all arguments except the first one
+	for color in "${@:2}"; do
+		printf "${colors[$color]}"
+	done
+	printf "$1${colors[END]}"
 }
 
 # if $1 is empty
 if [ -z "$1" ]; then
-    echo "Usage: $0 <NUMBER>"
-    exit 1
+	echo "Usage: $0 <NUMBER>"
+	exit 1
 fi
 
 # Check if Docker is running
 if ! docker info >/dev/null 2>&1; then
-    echo $(color "Docker" BLUE BOLD BLINK) $(color "is not running!" RED BLINK)
-    exit 1
+	echo "$(color " ❌ Docker" CYAN BOLD BLINK)" "$(color "is not running!" RED)"
+	exit 1
 fi
 
 # If there are multiple arguments, use quiet build
 if [ "$#" -gt 1 ]; then
-    QUIET='--quiet'
+	QUIET='--quiet'
 fi
 
 # Duplicate stdout
@@ -68,23 +68,32 @@ exec 5>&1
 
 for path in "$@"; do
 
-    tag=$(printf "%03d" $path)
-    file=$(echo "picoCTF/$tag"*)
-    name=$(echo $file | sed -e "s/^\w*\///")
+	tag="$(printf "%03d" "$path")"
+	file="$(echo "picoCTF/$tag"*)"
+	name="$(echo "$file" | sed -e "s/^\w*\///")"
 
-    LINK="https://play.picoctf.org/practice/challenge/$(HEAD=$(head -n 1 "$file/Dockerfile"); echo $HEAD | grep -i FROM > /dev/null || echo $HEAD | grep -oP \\d+ || true)"
+	# if file doesn't exist
+	if [ ! -d "$file" ]; then
+		printf "\n  ❌ %s %s\n" "$(color "picoCTF:$tag" BLUE BOLD)" "$(color "isn't solved yet!" MAGENTA)"
+		continue
+	fi
 
-    printf "\n%s %s <- %s %s... 🕒\r" "$(color " Building 📦" YELLOW)" "$(color "picoctf:$tag" LIGHT_BLUE)" "$(color "$name" MAGENTA)" "$(color "$LINK" LIGHT_CYAN)"
-    DOCKER_SCAN_SUGGEST=false docker build $QUIET --tag "picoctf:$tag" --build-arg "FLAG_STYLE=$FLAG_STYLE" --build-arg "FLAG_REGEX=$FLAG_REGEX" "$file" >/dev/null
+	LINK="https://play.picoctf.org/practice/challenge/$(
+		HEAD=$(head -n 1 "$file/Dockerfile")
+		echo "$HEAD" | grep -i FROM >/dev/null || echo "$HEAD" | grep -oP \\d+ || true
+	)"
 
-    printf "\r%s %s <- %s %-$((14 + $(echo $LINK | wc -c)))s\n\r" "$(color "  Running 🚀" GREEN)" "$(color "picoctf:$tag" LIGHT_BLUE)" "$(color "$name" MAGENTA)" "$(color "$LINK" LIGHT_CYAN)"
-    FLAG=$(docker run --rm -ti --name "picoCTF-$tag" "picoctf:$tag" 2>&1 | tee >(cat - >&5) | tac | grep -m1 -aoP "$FLAG_REGEX" || echo)
+	printf "\n%s %s <- %s %s... 🕒\r" "$(color "  📦Building" YELLOW)" "$(color "picoctf:$tag" LIGHT_BLUE)" "$(color "$name" MAGENTA BOLD)" "$(color "$LINK" LIGHT_CYAN)"
+	DOCKER_SCAN_SUGGEST=false docker build $QUIET --tag "picoctf:$tag" --build-arg "FLAG_STYLE=$FLAG_STYLE" --build-arg "FLAG_REGEX=$FLAG_REGEX" "$file" >/dev/null
 
-    if ! [ $(echo "$FLAG" | grep 'picoCTF') ]; then
-        FLAG="Not found"
-    fi
+	printf "\r%s %s <- %s %-$((14 + $(echo $LINK | wc -c)))s\n\r" "$(color "  🚀 Running" GREEN)" "$(color "picoctf:$tag" LIGHT_BLUE)" "$(color "$name" MAGENTA BOLD)" "$(color "$LINK" LIGHT_CYAN)"
+	FLAG=$(docker run --rm -ti --name "picoCTF-$tag" "picoctf:$tag" 2>&1 | tee >(cat >&5) | tac | grep -m1 -aoP "$FLAG_REGEX" || echo)
 
-    printf "$FLAG_STYLE" "$FLAG"
+	if ! [ $(echo "$FLAG" | grep 'picoCTF') ]; then
+		FLAG="Not found"
+	fi
+
+	printf "$FLAG_STYLE" "$FLAG"
 done
 
 echo
