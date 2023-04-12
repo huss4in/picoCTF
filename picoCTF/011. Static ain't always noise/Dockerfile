@@ -11,5 +11,4 @@ RUN wget https://mercury.picoctf.net/static/66932732825076cad4ba43e463dae82f/ltd
 
 RUN chmod +x ltdis.sh
 
-# CMD set -x; ./ltdis.sh static; grep picoCTF static.ltdis.strings.txt
-CMD set -x; grep picoCTF $(./ltdis.sh static | grep -oP '(?<= )[\w\.]+strings.txt')
+CMD set -x; grep picoCTF "$(./ltdis.sh static | grep -oP '(?<= )[\w\.]+strings.txt')"
