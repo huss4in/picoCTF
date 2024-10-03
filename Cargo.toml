@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-thirtyfour = "0.33.0"
-tokio = "1.26.0"
-ctrlc = "3.4.5"
+thirtyfour = "0.33"
+tokio = { version = "1", features = ["full"] }
+ctrlc = "3.4"
+
+[lints.rust]
+# unused = "allow"
+non_snake_case = "allow"
