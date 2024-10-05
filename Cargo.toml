@@ -4,10 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-thirtyfour = "0.33"
+thirtyfour = "0.34"
 tokio = { version = "1", features = ["full"] }
 ctrlc = "3.4"
+inquire = "0.7"
+log = "0.4"
+env_logger = "0.11"
+dotenv = "0.15"
+
 
 [lints.rust]
-# unused = "allow"
+unused = "allow"
 non_snake_case = "allow"

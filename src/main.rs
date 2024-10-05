@@ -1,10 +1,13 @@
-use picoCTF::PicoCTF;
+use picoCTF::Driver;
 use std::sync::Arc;
-use thirtyfour::prelude::*;
 use tokio::sync::Notify;
 
 #[tokio::main]
-async fn main() -> WebDriverResult<()> {
+async fn main() {
+    dotenv::dotenv().ok();
+    env_logger::init();
+
+    println!();
     let notify = Arc::new(Notify::new());
     let notifier = notify.clone();
 
@@ -14,18 +17,5 @@ async fn main() -> WebDriverResult<()> {
     })
     .unwrap();
 
-    let picoCTF = PicoCTF::new().await;
-
-    tokio::select! {
-        _ = picoCTF.run() => {
-            println!("Done!");
-        }
-        _ = notify.notified() => {
-            println!("Shutting down...");
-        }
-    }
-
-    picoCTF.quit().await;
-
-    Ok(())
+    Driver::init(notify.clone()).await;
 }
