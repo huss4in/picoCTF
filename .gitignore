@@ -1,7 +1,5 @@
 .env
 .venv*
 
-
-# Added by cargo
-
 /target
+/user-data
