@@ -1,15 +1,14 @@
+mod docker;
+mod common;
+
 use std::{
     collections::HashSet,
     env,
-    os::unix::process::CommandExt,
     process::{Child, Command, Stdio},
     sync::Arc,
     time::Duration,
 };
-use thirtyfour::{
-    error::WebDriverResult, BrowserCapabilitiesHelper, ChromiumLikeCapabilities,
-    DesiredCapabilities, WebDriver,
-};
+use thirtyfour::{error::WebDriverResult, DesiredCapabilities, WebDriver};
 use tokio::sync::Notify;
 
 use crate::utils;
@@ -18,8 +17,7 @@ pub struct Driver {
     child: Child,
     driver: WebDriver,
     notifier: Arc<Notify>,
-    driver_name: String,
-    port: u16,
+    driver_type: DriverType,
 }
 
 impl Driver {
@@ -30,10 +28,10 @@ impl Driver {
     }
 
     async fn new(notifier: Arc<Notify>) -> Self {
-        if let Some((mut child, DriverType(driver_name, ip, port))) = DriverType::new() {
+        if let Some((mut child, driver_type)) = DriverType::new() {
             const SEC: usize = 10;
 
-            log::warn!("Starting {}:{}... ⌛", &driver_name, port);
+            log::warn!("Starting {}:{}... ⌛", &driver_type.name, driver_type.port);
             match child
                 .stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -41,33 +39,32 @@ impl Driver {
                 .spawn()
             {
                 Ok(mut child) => {
+                    let url = format!("http://{}:{}", &driver_type.host, driver_type.port);
+
                     for counter in 0..SEC {
                         log::debug!("Waiting {}/{}s... ⌛", counter + 1, SEC);
                         tokio::time::sleep(Duration::from_secs(1)).await;
 
-                        let url = format!("http://{}:{}", ip, port);
                         let mut caps = DesiredCapabilities::chrome();
-
                         tokio::select! {
                             driver = WebDriver::new(&url, caps) => {
                                 match driver {
                                     Ok(driver) => {
-                                        log::info!("Starting {} {} ✅", &driver_name, url);
+                                        log::info!("Starting {} {} ✅", &driver_type.name, url);
                                         tokio::time::sleep(Duration::from_secs(2)).await;
 
                                         return Self {
                                             child,
                                             driver,
                                             notifier,
-                                            driver_name,
-                                            port,
+                                            driver_type,
                                         };
                                     }
                                     Err(e) => {
                                         if counter == SEC {
                                             log::error!(
                                                 "Failed to conntect to {} after {}s ❌:\n{}\n",
-                                                &driver_name,
+                                                driver_type.name,
                                                 SEC,
                                                 e
                                             );
@@ -75,20 +72,18 @@ impl Driver {
                                     }
                                 }
                             }
-
                             _ = tokio::time::sleep(Duration::from_secs(1)) => {
                                 continue;
                             }
-
                             _ = notifier.notified() => {
                                 break;
                             }
                         }
                     }
-                    Self::kill(&mut child, &driver_name).await;
+                    Self::kill(&mut child, driver_type.name).await;
                 }
                 Err(e) => {
-                    log::error!("Failed to start {} ❌: {}", &driver_name, e);
+                    log::error!("Failed to start {} ❌\n{}", driver_type.name, e);
                 }
             }
         };
@@ -120,9 +115,9 @@ impl Driver {
                 log::warn!("Automatic shutdown ({}s)... ⌛", TIMEOUT.as_secs());
             }
             _ = self.notifier.notified() => {
-                log::warn!("Shutting {} down... ⌛", self.driver_name);
+                log::warn!("Shutting {} down... ⌛", self.driver_type.name);
             }
-        };
+        }
 
         tokio::select! {
             err = self.driver.quit() => {
@@ -141,19 +136,21 @@ impl Driver {
             }
 
             _ = self.notifier.notified() => {
-                log::warn!("Shutting {} down... ⌛", self.driver_name);
+                log::warn!("Shutting {} down... ⌛", self.driver_type.name);
             }
         }
 
-        Self::kill(&mut self.child, &self.driver_name).await;
+        Self::kill(&mut self.child, self.driver_type.name).await;
     }
 
-    async fn kill(child: &mut Child, driver_name: &str) {
+    async fn kill(child: &mut Child, name: impl Into<String>) {
+        let name = name.into();
+
         if let Err(e) = child.kill() {
-            log::error!("Failed to kill {} ❌: {}", driver_name, e);
+            log::error!("Failed to kill {} ❌: {}", name, e);
         }
 
-        if driver_name == "docker" {
+        if name == "docker" {
             if let Err(e) = Command::new("docker")
                 .args(["stop", "selenium"])
                 .stdout(Stdio::null())
@@ -164,11 +161,15 @@ impl Driver {
             }
         }
 
-        log::info!("Shutting {} down... ✅", driver_name);
+        log::info!("Shutting {} down... ✅", name);
     }
 }
 
-struct DriverType(String, String, u16);
+struct DriverType {
+    name: String,
+    host: String,
+    port: u16,
+}
 
 impl DriverType {
     fn new() -> Option<(Command, Self)> {
@@ -182,11 +183,11 @@ impl DriverType {
                 .ok()
                 .and_then(|p| p.parse::<u16>().ok()),
         ) {
-            (Ok(driver_name), host, args, Some(port @ PORT_RANGE)) => {
+            (Ok(name), host, args, Some(port @ PORT_RANGE)) => {
                 let mut host = host.unwrap_or("localhost".into());
-                let mut child = Command::new(&driver_name);
+                let mut child = Command::new(&name);
 
-                if driver_name == "docker" {
+                if name == "docker" {
                     host = "localhost".into();
                     child
                         .args(["run", "--rm", "--shm-size=2g"])
@@ -202,7 +203,7 @@ impl DriverType {
                     child.arg(format!("--port={}", port));
                 }
 
-                return Some((child, Self(driver_name, host, port)));
+                return Some((child, Self { name, host, port }));
             }
             (_, _, _, Some(port)) => {
                 log::error!(

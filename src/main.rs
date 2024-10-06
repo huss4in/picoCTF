@@ -18,4 +18,8 @@ async fn main() {
     .unwrap();
 
     Driver::init(notify.clone()).await;
+    // Driver::docker::init(notify.clone()).await;
+    // Driver::edge::init(notify.clone()).await;
+    // Driver::chrome::init(notify.clone()).await;
+    // Driver::firefox::init(notify.clone()).await;
 }
