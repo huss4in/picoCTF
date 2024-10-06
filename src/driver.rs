@@ -31,10 +31,9 @@ impl Driver {
 
     async fn new(notifier: Arc<Notify>) -> Self {
         if let Some((mut child, DriverType(driver_name, ip, port))) = DriverType::new() {
-            log::warn!("Starting {}:{}... ⌛", &driver_name, port);
-
             const SEC: usize = 10;
 
+            log::warn!("Starting {}:{}... ⌛", &driver_name, port);
             match child
                 .stdin(Stdio::null())
                 .stdout(Stdio::null())
@@ -42,48 +41,51 @@ impl Driver {
                 .spawn()
             {
                 Ok(mut child) => {
-                    for counter in 0..=SEC {
-                        log::debug!("Waiting 1s... ⌛");
-
-                        tokio::select! {
-                            _ = tokio::time::sleep(Duration::from_secs(1)) => {
-                            }
-                            _ = notifier.notified() => {
-                                Self::kill(&mut child, &driver_name).await;
-                                break;
-                            }
-                        }
+                    for counter in 0..SEC {
+                        log::debug!("Waiting {}/{}s... ⌛", counter + 1, SEC);
+                        tokio::time::sleep(Duration::from_secs(1)).await;
 
                         let url = format!("http://{}:{}", ip, port);
                         let mut caps = DesiredCapabilities::chrome();
 
-                        match WebDriver::new(&url, caps).await {
-                            Ok(driver) => {
-                                log::info!("Starting {} {} ✅", &driver_name, &url);
-                                tokio::time::sleep(Duration::from_secs(2)).await;
+                        tokio::select! {
+                            driver = WebDriver::new(&url, caps) => {
+                                match driver {
+                                    Ok(driver) => {
+                                        log::info!("Starting {} {} ✅", &driver_name, url);
+                                        tokio::time::sleep(Duration::from_secs(2)).await;
 
-                                return Self {
-                                    child,
-                                    driver,
-                                    notifier,
-                                    driver_name,
-                                    port,
-                                };
-                            }
-                            Err(e) => {
-                                if counter == SEC {
-                                    log::error!(
-                                        "Failed to conntect to {} after {}s ❌:\n{}\n",
-                                        &driver_name,
-                                        SEC,
-                                        e
-                                    );
-
-                                    Self::kill(&mut child, &driver_name).await;
+                                        return Self {
+                                            child,
+                                            driver,
+                                            notifier,
+                                            driver_name,
+                                            port,
+                                        };
+                                    }
+                                    Err(e) => {
+                                        if counter == SEC {
+                                            log::error!(
+                                                "Failed to conntect to {} after {}s ❌:\n{}\n",
+                                                &driver_name,
+                                                SEC,
+                                                e
+                                            );
+                                        }
+                                    }
                                 }
+                            }
+
+                            _ = tokio::time::sleep(Duration::from_secs(1)) => {
+                                continue;
+                            }
+
+                            _ = notifier.notified() => {
+                                break;
                             }
                         }
                     }
+                    Self::kill(&mut child, &driver_name).await;
                 }
                 Err(e) => {
                     log::error!("Failed to start {} ❌: {}", &driver_name, e);
