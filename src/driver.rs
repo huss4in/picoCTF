@@ -1,6 +1,4 @@
-mod docker;
-mod common;
-
+use crate::utils;
 use std::{
     collections::HashSet,
     env,
@@ -9,25 +7,22 @@ use std::{
     time::Duration,
 };
 use thirtyfour::{error::WebDriverResult, DesiredCapabilities, WebDriver};
-use tokio::sync::Notify;
+use tokio::sync::{futures::Notified, Notify};
 
-use crate::utils;
+use super::{Browser, Config, Driver};
 
-pub struct Driver {
-    child: Child,
-    driver: WebDriver,
-    notifier: Arc<Notify>,
-    driver_type: DriverType,
+impl Config {
+    fn notified(&self) -> Notified {
+        match self {
+            Self::Local { notifier, .. } => notifier,
+            Self::Docker { notifier, .. } => notifier,
+        }
+        .notified()
+    }
 }
 
 impl Driver {
-    pub async fn init(notifier: Arc<Notify>) {
-        let mut driver = Self::new(notifier).await;
-        driver.run().await;
-        driver.quit().await;
-    }
-
-    async fn new(notifier: Arc<Notify>) -> Self {
+    pub async fn new(config: Config) -> Self {
         if let Some((mut child, driver_type)) = DriverType::new() {
             const SEC: usize = 10;
 
@@ -56,8 +51,7 @@ impl Driver {
                                         return Self {
                                             child,
                                             driver,
-                                            notifier,
-                                            driver_type,
+                                            config,
                                         };
                                     }
                                     Err(e) => {
@@ -75,7 +69,7 @@ impl Driver {
                             _ = tokio::time::sleep(Duration::from_secs(1)) => {
                                 continue;
                             }
-                            _ = notifier.notified() => {
+                            _ = config.notified() => {
                                 break;
                             }
                         }
@@ -91,7 +85,7 @@ impl Driver {
         std::process::exit(1);
     }
 
-    async fn run(&self) {
+    pub async fn run(&self) {
         log::warn!("Window focus... ⌛");
         self.driver.execute("window.focus();", vec![]).await;
         log::debug!("Window focus... ✅");
@@ -105,7 +99,7 @@ impl Driver {
         log::debug!("Maximizing window... ✅");
     }
 
-    async fn quit(mut self) {
+    pub async fn quit(mut self) {
         const TIMEOUT: Duration = Duration::from_secs(100);
 
         log::warn!("Quitting WebDriver in {}s... ⌛", TIMEOUT.as_secs());
@@ -114,8 +108,8 @@ impl Driver {
             _ = tokio::time::sleep(TIMEOUT) => {
                 log::warn!("Automatic shutdown ({}s)... ⌛", TIMEOUT.as_secs());
             }
-            _ = self.notifier.notified() => {
-                log::warn!("Shutting {} down... ⌛", self.driver_type.name);
+            _ = self.config.notified() => {
+                // log::warn!("Shutting {} down... ⌛", self.driver_type.name);
             }
         }
 
@@ -135,12 +129,12 @@ impl Driver {
                 log::warn!("Forcing shutdown... ⌛");
             }
 
-            _ = self.notifier.notified() => {
-                log::warn!("Shutting {} down... ⌛", self.driver_type.name);
+            _ = self.config.notified() => {
+                // log::warn!("Shutting {} down... ⌛", self.driver_type.name);
             }
         }
 
-        Self::kill(&mut self.child, self.driver_type.name).await;
+        // Self::kill(&mut self.child, self.driver_type.name).await;
     }
 
     async fn kill(child: &mut Child, name: impl Into<String>) {

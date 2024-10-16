@@ -1,4 +1,3 @@
-use picoCTF::Driver;
 use std::sync::Arc;
 use tokio::sync::Notify;
 
@@ -17,9 +16,21 @@ async fn main() {
     })
     .unwrap();
 
-    Driver::init(notify.clone()).await;
-    // Driver::docker::init(notify.clone()).await;
-    // Driver::edge::init(notify.clone()).await;
-    // Driver::chrome::init(notify.clone()).await;
-    // Driver::firefox::init(notify.clone()).await;
+    run(notify.clone()).await;
+}
+
+async fn run(notifier: Arc<Notify>) {
+    let config = picoCTF::Config::Local {
+        notifier,
+        host: "localhost".parse().ok(),
+        port: "3000".parse().ok(),
+        browser: picoCTF::Browser::Chrome(None),
+        profile: "",
+    };
+
+    let mut driver = picoCTF::Driver::new(config).await;
+
+    driver.run().await;
+
+    driver.quit().await;
 }
